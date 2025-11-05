@@ -48,6 +48,7 @@ struct TrackDisplayView: View {
                 .foregroundColor(Color.white)
                 .frame(height: 32)
 
+                Color.clear.frame(height: 10)
                 // Artist name with ellipsis
                 Text(track.artist)
                     .font(Fonts.Regular.size(16))

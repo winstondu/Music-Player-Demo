@@ -22,6 +22,7 @@ struct AudioWidget: View {
         ZStack(alignment: .center) {
             Colors.background
             VStack(spacing: 0) {
+                Spacer()
                 TrackDisplayView(track: currentTrack, artworkSize: 88)
                     .frame(width: 416)
 
@@ -43,6 +44,7 @@ struct AudioWidget: View {
                 Color.clear.frame(height: 16)
 
                 widgetBottomControls
+                Spacer()
             }
         }
         .frame(maxWidth: 480, maxHeight: 300)
