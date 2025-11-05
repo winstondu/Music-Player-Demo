@@ -65,16 +65,20 @@ struct FavoriteHeartIcon: View {
         .releaseAction {
             toggleFavorite()
         }
-        .onChange(of: isFavorite) { oldValue, newValue in
-            if newValue && !oldValue {
-                // Only animate on false -> true transition
-                isAnimating = true
-            }
-        }
     }
 
     private func toggleFavorite() {
-        isFavorite.toggle()
+        let wasFavorite = isFavorite
+
+        // Animate the toggle when user explicitly taps
+        withAnimation(.easeInOut(duration: 0.2)) {
+            isFavorite.toggle()
+        }
+
+        // Only trigger burst animation when favoriting (false -> true)
+        if !wasFavorite && isFavorite {
+            isAnimating = true
+        }
     }
 }
 
