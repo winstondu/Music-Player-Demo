@@ -8,10 +8,10 @@
 import SwiftUI
 
 struct TrackDisplayView: View {
-    let track: MusicTrack
+    let track: MusicTrack?
     let artworkSize: CGFloat
 
-    init(track: MusicTrack, artworkSize: CGFloat = 88) {
+    init(track: MusicTrack?, artworkSize: CGFloat = 88) {
         self.track = track
         self.artworkSize = artworkSize
     }
@@ -19,29 +19,33 @@ struct TrackDisplayView: View {
     var body: some View {
         HStack(spacing: 16) {
             // Album artwork
-            AsyncImage(url: track.artworkUrl100) { phase in
-                switch phase {
-                case .empty:
-                    placeholderArtwork
-                case .success(let image):
-                    image
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: artworkSize, height: artworkSize)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                case .failure:
-                    placeholderArtwork
-                @unknown default:
-                    placeholderArtwork
+            if let track = track {
+                AsyncImage(url: track.artworkUrl100) { phase in
+                    switch phase {
+                    case .empty:
+                        placeholderArtwork
+                    case .success(let image):
+                        image
+                            .resizable()
+                            .aspectRatio(contentMode: .fill)
+                            .frame(width: artworkSize, height: artworkSize)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    case .failure:
+                        placeholderArtwork
+                    @unknown default:
+                        placeholderArtwork
+                    }
                 }
+                .frame(width: artworkSize, height: artworkSize)
+                .cornerRadius(4)
+            } else {
+                placeholderArtwork
             }
-            .frame(width: artworkSize, height: artworkSize)
-            .cornerRadius(4)
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 0) {
                 // Track name with marquee (weight 500)
                 MarqueeText(
-                    text: track.name,
+                    text: track?.name ?? "No Track",
                     font: Fonts.Medium.size(24)
                 )
                 .fontWeight(.medium)
@@ -49,8 +53,9 @@ struct TrackDisplayView: View {
                 .frame(height: 32)
 
                 Color.clear.frame(height: 10)
+
                 // Artist name with ellipsis
-                Text(track.artist)
+                Text(track?.artist ?? "Select a track to play")
                     .font(Fonts.Regular.size(16))
                     .foregroundColor(Color.white)
                     .opacity(0.5)
@@ -84,7 +89,7 @@ struct TrackDisplayView: View {
                 name: "Black Friday (pretty like the sun)",
                 artist: "Lost Frequencies, Tom Odell, Poppy Baskcomb",
                 previewURL: nil,
-                artworkUrl100: nil// URL(string: "https://lh3.googleusercontent.com/gShVRyvLLbwVB8jeIPghCXgr96wxTHaM4zqfmxIWRsUpMhMn38PwuUU13o1mXQzLMt5HFqX761u8Tgo4L_JG1XLATvw=s0")
+                artworkUrl100: nil  // URL(string: "https://lh3.googleusercontent.com/gShVRyvLLbwVB8jeIPghCXgr96wxTHaM4zqfmxIWRsUpMhMn38PwuUU13o1mXQzLMt5HFqX761u8Tgo4L_JG1XLATvw=s0")
             ),
             artworkSize: 88
         )

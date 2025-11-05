@@ -8,15 +8,22 @@
 import SwiftUI
 
 struct AudioWidget: View {
-    @State var currentTrack: MusicTrack
+    @Binding var currentTrack: MusicTrack?
+    @Binding var isPlaying: Bool
+    @Binding var isFavorite: Bool
+    @Binding var repeatState: RepeatState
+    @Binding var currentTime: TimeInterval
+    @Binding var bufferedTime: TimeInterval
 
-    @State var isPlaying: Bool
-    @State var isFavorite: Bool
-    @State var repeatState: RepeatState = .repeatOff
+    var isTrackLoaded: Bool {
+        currentTrack != nil
+    }
 
-    @State var currentTime: TimeInterval = 0
-    @State var bufferedTime: TimeInterval = 60
-    let duration: TimeInterval = 300  // 5 minutes
+    var duration: TimeInterval {
+        // Duration is derived from the track
+        // In real implementation, this would come from the track metadata or audio player
+        isTrackLoaded ? 300 : 0  // 5 minutes when track is loaded, 0 when no track
+    }
 
     var body: some View {
         ZStack(alignment: .center) {
@@ -40,6 +47,7 @@ struct AudioWidget: View {
                         .hapticFeedback(onStart: true, onEnd: true)
                 }
                 .frame(maxWidth: 416)
+                .allowsHitTesting(isTrackLoaded)
 
                 Color.clear.frame(height: 16)
 
@@ -66,11 +74,13 @@ struct AudioWidget: View {
                 .releaseAction {
                     print("Previous")
                 }
+                .allowsHitTesting(isTrackLoaded)
 
             PlayPauseIcon(isPlaying: $isPlaying, size: 48)
                 .pressScale()
                 .hapticFeedback()
                 .circularRipple(diameter: 72)
+                .allowsHitTesting(isTrackLoaded)
 
             SkipIcon(direction: .right, size: 36, frameSize: 36)
                 .pressScale()
@@ -79,10 +89,11 @@ struct AudioWidget: View {
                 .releaseAction {
                     print("Next")
                 }
+                .allowsHitTesting(isTrackLoaded)
 
             FavoriteHeartIcon(isFavorite: $isFavorite, heartSize: 24, frameSize: 36)
                 .hapticFeedback()
-
+                .allowsHitTesting(isTrackLoaded)
         }
     }
 }

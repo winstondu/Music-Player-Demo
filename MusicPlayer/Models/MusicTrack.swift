@@ -7,7 +7,7 @@
 
 import Foundation
 
-struct MusicTrack: Identifiable, Codable {
+struct MusicTrack: Identifiable, Codable, Equatable {
     let id: String
     let name: String
     let artist: String
