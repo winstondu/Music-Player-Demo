@@ -10,7 +10,7 @@ import SwiftUI
 
 struct TimelineSlider<Knob: View>: View {
     @Binding var currentTime: TimeInterval
-    @Binding var bufferedTime: TimeInterval
+    let bufferedTime: TimeInterval
 
     let duration: TimeInterval
 
@@ -21,23 +21,31 @@ struct TimelineSlider<Knob: View>: View {
 
     let knob: Knob
 
+    // Callbacks for interaction events
+    var onInteractionStart: (@MainActor () -> Void)?
+    var onInteractionEnd: (@MainActor () -> Void)?
+
     init(
         currentTime: Binding<TimeInterval>,
-        bufferedTime: Binding<TimeInterval>,
+        bufferedTime: TimeInterval,
         duration: TimeInterval,
         trackColor: Color = Colors.TimelineColors.barUnplayed,
         bufferedColor: Color = Colors.TimelineColors.barLoaded,
         progressColor: Color = Colors.TimelineColors.barPlayed,
         trackHeight: CGFloat = 3,
+        onInteractionStart: (@MainActor () -> Void)? = nil,
+        onInteractionEnd: (@MainActor () -> Void)? = nil,
         @ViewBuilder knob: () -> Knob
     ) {
         self._currentTime = currentTime
-        self._bufferedTime = bufferedTime
+        self.bufferedTime = bufferedTime
         self.duration = duration
         self.trackColor = trackColor
         self.bufferedColor = bufferedColor
         self.progressColor = progressColor
         self.trackHeight = trackHeight
+        self.onInteractionStart = onInteractionStart
+        self.onInteractionEnd = onInteractionEnd
         self.knob = knob()
     }
 
@@ -45,13 +53,15 @@ struct TimelineSlider<Knob: View>: View {
         VStack(spacing: 3) {
             ProgressSlider(
                 knobPosition: $currentTime,
-                bufferedPosition: $bufferedTime,
+                bufferedPosition: bufferedTime,
                 start: 0,
                 end: duration,
                 trackColor: trackColor,
                 bufferedColor: bufferedColor,
                 progressColor: progressColor,
-                trackHeight: trackHeight
+                trackHeight: trackHeight,
+                onInteractionStart: onInteractionStart,
+                onInteractionEnd: onInteractionEnd
             ) {
                 knob
             }
@@ -89,7 +99,7 @@ struct TimelineSlider<Knob: View>: View {
 extension TimelineSlider where Knob == AnyView {
     init(
         currentTime: Binding<TimeInterval>,
-        bufferedTime: Binding<TimeInterval>,
+        bufferedTime: TimeInterval,
         duration: TimeInterval,
         trackColor: Color = Colors.TimelineColors.barUnplayed,
         bufferedColor: Color = Colors.TimelineColors.barLoaded,
@@ -123,7 +133,7 @@ extension TimelineSlider where Knob == AnyView {
 
     TimelineSlider(
         currentTime: $currentTime,
-        bufferedTime: $bufferedTime,
+        bufferedTime: bufferedTime,
         duration: duration
     )
     .padding()

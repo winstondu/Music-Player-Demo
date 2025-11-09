@@ -7,8 +7,9 @@
 import SwiftUI
 
 struct ProgressSlider<Knob: View>: View {
+    @State private var didBeginInteraction: Bool = false
     @Binding var knobPosition: Double
-    @Binding var bufferedPosition: Double
+    let bufferedPosition: Double
 
     let start: Double
     let end: Double
@@ -23,25 +24,33 @@ struct ProgressSlider<Knob: View>: View {
 
     let knob: Knob
 
+    // Callbacks for interaction events
+    var onInteractionStart: (@MainActor () -> Void)?
+    var onInteractionEnd: (@MainActor () -> Void)?
+
     init(
         knobPosition: Binding<Double>,
-        bufferedPosition: Binding<Double>,
+        bufferedPosition: Double,
         start: Double,
         end: Double,
         trackColor: Color = Colors.TimelineColors.barUnplayed,
         bufferedColor: Color = Colors.TimelineColors.barLoaded,
         progressColor: Color = Colors.TimelineColors.barPlayed,
         trackHeight: CGFloat = 3,
+        onInteractionStart: (@MainActor () -> Void)? = nil,
+        onInteractionEnd: (@MainActor () -> Void)? = nil,
         @ViewBuilder knob: () -> Knob
     ) {
         self._knobPosition = knobPosition
-        self._bufferedPosition = bufferedPosition
+        self.bufferedPosition = bufferedPosition
         self.start = start
         self.end = end
         self.trackColor = trackColor
         self.bufferedColor = bufferedColor
         self.progressColor = progressColor
         self.trackHeight = trackHeight
+        self.onInteractionStart = onInteractionStart
+        self.onInteractionEnd = onInteractionEnd
         self.knob = knob()
     }
 
@@ -56,12 +65,22 @@ struct ProgressSlider<Knob: View>: View {
                 difference > 0 ? ((bufferedPosition - start) / difference) * trackWidth : 0
             let progressWidth = knobX
 
-            let drag = DragGesture(minimumDistance: 0).onChanged { newValue in
-                let dragX = Swift.max(0, Swift.min(newValue.location.x, trackWidth))
-                let fraction = dragX / trackWidth
-                let newPosition = start + (fraction * difference)
-                knobPosition = Swift.max(start, Swift.min(newPosition, end))
-            }
+            let drag = DragGesture(minimumDistance: 0)
+                .onChanged { newValue in
+                    // Fire start callback once per gesture
+                    if !didBeginInteraction {
+                        didBeginInteraction = true
+                        onInteractionStart?()
+                    }
+                    let dragX = Swift.max(0, Swift.min(newValue.location.x, trackWidth))
+                    let fraction = dragX / trackWidth
+                    let newPosition = start + (fraction * difference)
+                    knobPosition = Swift.max(start, Swift.min(newPosition, end))
+                }
+                .onEnded { _ in
+                    didBeginInteraction = false
+                    onInteractionEnd?()
+                }
 
             ZStack(alignment: .leading) {
                 // 1. Background track - full width
@@ -73,6 +92,7 @@ struct ProgressSlider<Knob: View>: View {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(bufferedColor)
                     .frame(width: Swift.max(0, bufferedWidth), height: trackHeight)
+                    .animation(.linear(duration: 0.3), value: bufferedWidth)
 
                 // 3. Progress rectangle - up to knob position
                 RoundedRectangle(cornerRadius: cornerRadius)
@@ -93,7 +113,7 @@ struct ProgressSlider<Knob: View>: View {
 extension ProgressSlider where Knob == AnyView {
     init(
         knobPosition: Binding<Double>,
-        bufferedPosition: Binding<Double>,
+        bufferedPosition: Double,
         start: Double,
         end: Double,
         trackColor: Color = Colors.TimelineColors.barUnplayed,
@@ -127,7 +147,7 @@ extension ProgressSlider where Knob == AnyView {
     VStack(spacing: 20) {
         ProgressSlider(
             knobPosition: $position,
-            bufferedPosition: $buffered,
+            bufferedPosition: buffered,
             start: 0,
             end: 100
         )

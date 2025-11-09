@@ -37,7 +37,7 @@ struct AudioWidget: View {
 
                 TimelineSlider(
                     currentTime: $currentTime,
-                    bufferedTime: $bufferedTime,
+                    bufferedTime: bufferedTime,
                     duration: duration
                 ) {
                     Circle()
