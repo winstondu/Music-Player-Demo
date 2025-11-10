@@ -65,7 +65,7 @@ class MockTrackPlayer: ObservableObject, TrackPlayerProtocol {
 
     func seek(to time: TimeInterval) {
         currentTime = min(max(0, time), duration)
-        bufferedTime = min(bufferedTime, currentTime)
+        bufferedTime = max(bufferedTime, currentTime)
         print("Mock player: Seeked to \(currentTime)s")
     }
 
@@ -123,9 +123,7 @@ class MockTrackPlayer: ObservableObject, TrackPlayerProtocol {
                     self.currentTime += self.playbackInterval
 
                     // Auto-buffer slightly ahead of current time
-                    if self.bufferedTime < self.currentTime {
-                        self.bufferedTime = min(self.currentTime, self.duration)
-                    }
+                    self.bufferedTime = max(self.bufferedTime, min(self.currentTime, self.duration))
                 }
             }
         }

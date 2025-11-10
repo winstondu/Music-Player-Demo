@@ -68,21 +68,13 @@ class AudioWidgetViewModel<Player: TrackPlayerProtocol>: ObservableObject {
         isInteractingWithSlider = false
 
         // Seek to the committed time via protocol
+        let didSeekPastBufferTime = internalCurrentTime > player.bufferedTime
+        let shouldResumeAfterSeek = !didSeekPastBufferTime && wasPlayingBeforeInteraction
+        
         player.seek(to: internalCurrentTime)
-
-        // Check if seeking past buffered content (Case 3)
-        let bufferedTime = player.bufferedTime
-        if internalCurrentTime > bufferedTime {
-            // Don't resume playback - pause regardless of previous state
-            // Rationale: Prevents confusing UX where playback "starts" but no audio due to buffering
-            print(
-                "Seeking past buffered content (\(internalCurrentTime)s > \(bufferedTime)s) - pausing playback"
-            )
-        } else {
-            // Cases 1 & 2: Resume playback if it was playing before
-            if wasPlayingBeforeInteraction {
-                player.resume()
-            }
+        
+        if shouldResumeAfterSeek {
+            player.resume()
         }
     }
 }
