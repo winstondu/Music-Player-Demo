@@ -8,19 +8,28 @@
 import SwiftUI
 
 struct ContentView: View {
+    @ObservedObject private var realPlayer = TrackPlayer.shared
     @StateObject private var mockPlayer = MockTrackPlayer()
+    @State private var wrappedRealPlayer: AnyTrackPlayer?
+    @State private var wrappedMockPlayer: AnyTrackPlayer?
     private let userPreferences = UserPreferences.shared
 
     // Debug toggle
     @State private var hasTrack: Bool = true
     @State private var showDebugSidebar: Bool = false
     @State private var selectedTab: SidebarTab = .debug
+    @State private var playerType: PlayerType = .real
 
     // Search state
     @State private var searchQuery: String = ""
     @State private var searchResults: [MusicTrack] = []
     @State private var isSearching: Bool = false
     @State private var hasLoadedInitialSuggestions: Bool = false
+
+    enum PlayerType: String, CaseIterable {
+        case real = "Real Player"
+        case mock = "Mock Player"
+    }
 
     enum SidebarTab {
         case debug
@@ -29,6 +38,20 @@ struct ContentView: View {
 
     let sampleTrack = MusicTrack.defaultMusicTrack
 
+    // Computed property to get current player
+    private var currentPlayer: any TrackPlayerProtocol {
+        switch playerType {
+        case .real:
+            return realPlayer
+        case .mock:
+            return mockPlayer
+        }
+    }
+
+    // Computed property for current wrapped player
+    private var currentWrappedPlayer: AnyTrackPlayer? {
+        playerType == .real ? wrappedRealPlayer : wrappedMockPlayer
+    }
 
     var body: some View {
         ZStack {
@@ -38,7 +61,10 @@ struct ContentView: View {
             HStack(spacing: 0) {
                 // Main content area
                 ZStack {
-                    AudioWidget(player: mockPlayer, preferences: userPreferences)
+                    if let player = currentWrappedPlayer {
+                        AudioWidget(player: player, preferences: userPreferences)
+                            .id("audio-widget-\(playerType.rawValue)")
+                    }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
@@ -76,9 +102,19 @@ struct ContentView: View {
             }
         }
         .onAppear {
-            // Initialize with sample track if needed
+            // Initialize wrapped players with the actual instances
+            if wrappedRealPlayer == nil {
+                wrappedRealPlayer = AnyTrackPlayer(realPlayer)
+            }
+            if wrappedMockPlayer == nil {
+                wrappedMockPlayer = AnyTrackPlayer(mockPlayer)
+            }
+
+            // Load sample track without playing
             if hasTrack {
-                mockPlayer.setTrack(sampleTrack)
+                Task {
+                    await realPlayer.loadTrack(sampleTrack)
+                }
             }
         }
     }
@@ -137,6 +173,33 @@ struct ContentView: View {
 
     private var debugTabContent: some View {
         VStack(spacing: 12) {
+            // Player type picker
+            Picker("Player Type", selection: $playerType) {
+                ForEach(PlayerType.allCases, id: \.self) { type in
+                    Text(type.rawValue).tag(type)
+                }
+            }
+            .pickerStyle(.segmented)
+            .padding()
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(8)
+            .onChange(of: playerType) { oldValue, newValue in
+                // Reset state when switching players
+                if newValue == .real {
+                    mockPlayer.setTrack(nil)
+                    if hasTrack {
+                        Task {
+                            await realPlayer.loadTrack(sampleTrack)
+                        }
+                    }
+                } else {
+                    realPlayer.stop()
+                    if hasTrack {
+                        mockPlayer.setTrack(sampleTrack)
+                    }
+                }
+            }
+
             Toggle("Has Track", isOn: $hasTrack)
                 .padding()
                 .background(Color.white.opacity(0.1))
@@ -144,12 +207,57 @@ struct ContentView: View {
                 .onChange(of: hasTrack) { oldValue, newValue in
                     // Update track when toggle changes
                     if newValue {
-                        mockPlayer.setTrack(sampleTrack)
+                        Task {
+                            if playerType == .real {
+                                await realPlayer.loadTrack(sampleTrack)
+                            } else {
+                                mockPlayer.setTrack(sampleTrack)
+                            }
+                        }
                     } else {
-                        mockPlayer.setTrack(nil)
+                        // Stop/clear on current player
+                        if playerType == .real {
+                            realPlayer.stop()
+                        } else {
+                            mockPlayer.setTrack(nil)
+                        }
                     }
                 }
 
+            // Player state info
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Player State")
+                    .font(.headline)
+
+                if let track = currentPlayer.currentTrack {
+                    Text("Playing: \(track.name)")
+                        .font(.caption)
+                } else {
+                    Text("No track loaded")
+                        .font(.caption)
+                        .foregroundColor(.gray)
+                }
+
+                Text("Buffered: \(formatDuration(currentPlayer.bufferedTime))")
+                    .font(.caption)
+
+                Text("Status: \(currentPlayer.isPlaying ? "Playing" : "Paused")")
+                    .font(.caption)
+            }
+            .padding()
+            .background(Color.white.opacity(0.1))
+            .cornerRadius(8)
+
+            // Mock-specific controls
+            if playerType == .mock {
+                mockPlayerControls
+            }
+        }
+        .padding(.horizontal, 16)
+    }
+
+    private var mockPlayerControls: some View {
+        VStack(spacing: 12) {
             Toggle(
                 "Buffering",
                 isOn: Binding(
@@ -186,7 +294,6 @@ struct ContentView: View {
             .cornerRadius(8)
             .disabled(!hasTrack)
         }
-        .padding(.horizontal, 16)
     }
 
     private var searchTabContent: some View {
@@ -232,9 +339,15 @@ struct ContentView: View {
 
     private func trackResultRow(_ track: MusicTrack) -> some View {
         Button(action: {
-            mockPlayer.setTrack(track)
-            mockPlayer.play()
-            hasTrack = true
+            Task {
+                if playerType == .real {
+                    await realPlayer.play(track: track)
+                } else {
+                    mockPlayer.setTrack(track)
+                    mockPlayer.play()
+                }
+                hasTrack = true
+            }
         }) {
             VStack(alignment: .leading, spacing: 4) {
                 Text(track.name)
