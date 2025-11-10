@@ -13,7 +13,7 @@ struct ContentView: View {
 
     // Debug toggle
     @State private var hasTrack: Bool = true
-    @State private var showDebugSidebar: Bool = true
+    @State private var showDebugSidebar: Bool = false
     @State private var selectedTab: SidebarTab = .debug
 
     // Search state
