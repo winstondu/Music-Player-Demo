@@ -31,7 +31,8 @@ struct ContentView: View {
         artworkUrl100: URL(
             string:
                 "https://lh3.googleusercontent.com/gShVRyvLLbwVB8jeIPghCXgr96wxTHaM4zqfmxIWRsUpMhMn38PwuUU13o1mXQzLMt5HFqX761u8Tgo4L_JG1XLATvw=s0"
-        )
+        ),
+        trackTimeMillis: 300000
     )
 
     var body: some View {
