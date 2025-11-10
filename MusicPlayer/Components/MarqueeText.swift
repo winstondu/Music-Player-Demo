@@ -17,6 +17,7 @@ struct MarqueeText: View {
     @State private var textWidth: CGFloat = 0
     @State private var containerWidth: CGFloat = 0
     @State private var isMarqueeActive: Bool = false
+    @State private var scrollContentID = UUID()
 
     init(text: String, font: Font, spacing: CGFloat = 40) {
         self.text = text
@@ -35,6 +36,7 @@ struct MarqueeText: View {
                 Text(text)
                     .font(font)
                     .fixedSize()
+                    .id("measurement")
                     .background(
                         GeometryReader { textGeometry in
                             Color.clear
@@ -59,25 +61,24 @@ struct MarqueeText: View {
                             Text(text)
                                 .font(font)
                                 .fixedSize()
-                                .id("text-1")
+                                .id("text-1-\(text)")
 
                             if shouldScroll {
                                 Text(text)
                                     .font(font)
                                     .fixedSize()
-                                    .id("text-2")
+                                    .id("text-2-\(text)")
                             }
                         }
                     }
+                    .id(scrollContentID)
                     .scrollIndicators(.hidden)
                     .scrollDisabled(true)
                     .onChange(of: shouldScroll) { _, _ in
                         updateMarqueeState(proxy: proxy)
                     }
-                    .onChange(of: text) { _, _ in
-                        // Reset scroll position when text changes
-                        isMarqueeActive = false
-                        proxy.scrollTo("text-1", anchor: .leading)
+                    .onChange(of: text) { _, newText in
+                        resetMarquee(proxy: proxy, newText: newText)
                     }
                     .onAppear {
                         updateMarqueeState(proxy: proxy)
@@ -108,12 +109,13 @@ struct MarqueeText: View {
         guard isMarqueeActive else { return }
 
         withAnimation(.linear(duration: scrollDuration)) {
-            proxy.scrollTo("text-2", anchor: .leading)
+            proxy.scrollTo("text-2-\(text)", anchor: .leading)
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + scrollDuration) {
             // Reset to start position without animation
-            proxy.scrollTo("text-1", anchor: .leading)
+            proxy.scrollTo("text-1-\(self.text)", anchor: .leading)
 
+            guard isMarqueeActive else { return }
             // Continue the loop
             DispatchQueue.main.async {
                 animateMarquee(proxy: proxy)
@@ -123,6 +125,14 @@ struct MarqueeText: View {
 
     private func stopMarquee(proxy: ScrollViewProxy) {
         isMarqueeActive = false
-        proxy.scrollTo("text-1", anchor: .leading)
+        proxy.scrollTo("text-1-\(text)", anchor: .leading)
+    }
+
+    private func resetMarquee(proxy: ScrollViewProxy, newText: String) {
+        isMarqueeActive = false
+        scrollContentID = UUID()
+        withAnimation(nil) {
+            proxy.scrollTo("text-1-\(newText)", anchor: .leading)
+        }
     }
 }
