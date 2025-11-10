@@ -45,20 +45,36 @@ To make interactions on the icon buttons feel polished, I do the following:
 3. On touch down, I show the selection circle background. This is faded out on touch-up, and I use an animation here.
 
 ### Icon specific details
-1. Favorite button:
-    - The Figma provided the "unfavorited" state as a heart with a stroke.
-    - I add the favorited state, which is the filled heart. I chose a particular reddish color to really add some enticing color.
-    - I also add a Lottie animation, is a burst of particles that fly outwards, when I transition to the favorited state.
-2. Play/Pause button:
-    - The Figma provided the "Pause state", which uses the Pause icon
-    - I also add the "Play state", which uses the Play icon.
-    - In order to make things "look nice", I offset the play icon to the right slightly, and make it a size larger. This 
-3. Repeat buttons
-    - The Figma provided what seems to be a "repeat-off" state.
-    - I felt it appropriate to add a "repeat-on" state, and a "repeat-one" state. The repeat-one state would display the "repeat_one" icon.
-    - Repeat being on is indicated via a teal-green color.
-4. Skip buttons
-    - These match exactly the Figma.
+
+#### 1. Favorite button
+- The Figma provided the "unfavorited" state as a heart with a stroke.
+- I add the favorited state, which is the filled heart. I chose a particular reddish color to really add some enticing color.
+- I also add a Lottie animation, is a burst of particles that fly outwards, when I transition to the favorited state.
+
+<img src="DocumentationAssets/Favorite.gif" width="300" />
+
+#### 2. Play/Pause button
+- The Figma provided the "Pause state", which uses the Pause icon
+- I also add the "Play state", which uses the Play icon.
+- In order to make things "look nice", I offset the play icon to the right slightly, and make it a size larger.
+
+<img src="DocumentationAssets/Play.gif" width="300" />
+
+#### 3. Repeat button
+- The Figma provided what seems to be a "repeat-off" state.
+- I felt it appropriate to add a "repeat-on" state, and a "repeat-one" state. The repeat-one state would display the "repeat_one" icon.
+- Repeat being on is indicated via a teal-green color.
+
+**States**: 
+
+<img src="DocumentationAssets/repeat-off.svg" style="border: 1px solid #ccc; padding: 4px; vertical-align: middle; background-color: #2E3240" /> Repeat Off (#f2f2f2 - surfaceColor)
+
+<img src="DocumentationAssets/repeat-on.svg" style="border: 1px solid #ccc; padding: 4px; vertical-align: middle; background-color: #2E3240" /> Repeat On (#3EB489 - successContainerColor)
+
+<img src="DocumentationAssets/repeat-one.svg" style="border: 1px solid #ccc; padding: 4px; vertical-align: middle; background-color: #2E3240" /> Repeat One (#3EB489 - successContainerColor)
+
+#### 4. Skip buttons
+- These match exactly the Figma.
 
 ## Timeline Slider
 In order to make the timeline slider feel polished and match the Figma, I created my own custom slider.
@@ -115,4 +131,39 @@ The title and artist text are handled differently to balance functionality with 
    - **Design rationale**: While scrolling works well for single-line primary information (the title), implementing marquee for both lines would create visual chaos with multiple simultaneously scrolling elements
    - The artist name is secondary information - users primarily identify songs by their title
    - Truncation provides a cleaner, more stable visual experience that doesn't distract from the main controls
+
+## Null Track State Handling
+When no track is currently loaded (`currentTrack` is nil), AudioWidget gracefully degrades to prevent inappropriate interactions while maintaining visual consistency.
+
+### Display States
+
+**TrackDisplayView**:
+- Shows placeholder artwork (gray rounded rectangle with music note icon)
+- Displays "No Track" as the title text
+- Displays "Select a track to play" as the artist text
+- Maintains normal styling and layout
+
+**TimelineSlider**:
+- Shows 0:00 for both current time and duration
+- Progress bar and knob positioned at the start
+- Maintains normal visual appearance
+
+**Control Buttons**:
+- All buttons maintain their normal visual appearance
+- No opacity changes or visual dimming applied
+
+### Interaction Behavior
+
+The widget uses `.allowsHitTesting(false)` to selectively disable interaction with track-specific controls:
+
+**Disabled Controls** (when no track is loaded):
+- **TimelineSlider**: Non-interactive - dragging the knob has no effect
+- **Skip Previous/Next**: Non-interactive - tapping has no effect
+- **Play/Pause**: Non-interactive - tapping has no effect
+- **Favorite**: Non-interactive - tapping has no effect
+
+**Active Control** (always interactive):
+- **Repeat Icon**: Fully interactive regardless of track state
+  - **Rationale**: Repeat is a playback preference setting, not a per-track action
+  - Users should be able to configure repeat mode before playback begins
 
