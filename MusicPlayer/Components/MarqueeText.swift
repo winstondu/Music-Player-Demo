@@ -11,7 +11,7 @@ struct MarqueeText: View {
     let text: String
     let font: Font
     let spacing: CGFloat  // Spacing between repeated text in marquee
-    
+
     let scrollDuration = 6.0
 
     @State private var textWidth: CGFloat = 0
@@ -71,17 +71,13 @@ struct MarqueeText: View {
                     }
                     .scrollIndicators(.hidden)
                     .scrollDisabled(true)
-                    .onChange(of: textWidth) { _, _ in
-                        updateMarqueeState(proxy: proxy)
-                    }
-                    .onChange(of: containerWidth) { _, _ in
+                    .onChange(of: shouldScroll) { _, _ in
                         updateMarqueeState(proxy: proxy)
                     }
                     .onChange(of: text) { _, _ in
                         // Reset scroll position when text changes
                         isMarqueeActive = false
                         proxy.scrollTo("text-1", anchor: .leading)
-                        updateMarqueeState(proxy: proxy)
                     }
                     .onAppear {
                         updateMarqueeState(proxy: proxy)
