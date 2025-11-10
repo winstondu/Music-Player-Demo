@@ -7,22 +7,63 @@
 
 import SwiftUI
 
-struct AudioWidget: View {
-    @Binding var currentTrack: MusicTrack?
-    @Binding var isPlaying: Bool
-    @Binding var isFavorite: Bool
-    @Binding var repeatState: RepeatState
-    @Binding var currentTime: TimeInterval
-    @Binding var bufferedTime: TimeInterval
+struct AudioWidget<Player: TrackPlayerProtocol>: View {
+    @ObservedObject var player: Player
+    var preferences: any UserPreferencesProtocol
+
+    @StateObject private var viewModel: AudioWidgetViewModel<Player>
+
+    init(player: Player, preferences: any UserPreferencesProtocol) {
+        self.player = player
+        self.preferences = preferences
+        self._viewModel = StateObject(wrappedValue: AudioWidgetViewModel(player: player))
+    }
 
     var isTrackLoaded: Bool {
-        currentTrack != nil
+        player.currentTrack != nil
+    }
+
+    var isFavorite: Bool {
+        guard let trackId = player.currentTrack?.id else { return false }
+        return preferences.isFavorite(trackId: trackId)
     }
 
     var duration: TimeInterval {
         // Duration is derived from the track
-        // In real implementation, this would come from the track metadata or audio player
-        isTrackLoaded ? 300 : 0  // 5 minutes when track is loaded, 0 when no track
+        return player.currentTrack?.durationSeconds ?? 0
+    }
+
+    // Custom bindings
+    private var currentTimeBinding: Binding<TimeInterval> {
+        Binding(
+            get: { self.viewModel.currentTime },
+            set: { newValue in
+                self.viewModel.updateSliderTime(newValue)
+            }
+        )
+    }
+
+    private var repeatStateBinding: Binding<RepeatState> {
+        player.binding(for: \.repeatState)
+    }
+
+    private var isPlayingBinding: Binding<Bool> {
+        Binding(
+            get: { self.player.isPlaying },
+            set: { _ in
+                self.player.togglePlayPause()
+            }
+        )
+    }
+
+    private var isFavoriteBinding: Binding<Bool> {
+        Binding(
+            get: { self.isFavorite },
+            set: { newValue in
+                guard let trackId = self.player.currentTrack?.id else { return }
+                self.preferences.setFavorite(newValue, for: trackId)
+            }
+        )
     }
 
     var body: some View {
@@ -30,15 +71,21 @@ struct AudioWidget: View {
             Colors.background
             VStack(spacing: 0) {
                 Spacer()
-                TrackDisplayView(track: currentTrack, artworkSize: 88)
+                TrackDisplayView(track: player.currentTrack, artworkSize: 88)
                     .frame(width: 416)
 
                 Color.clear.frame(height: 30)
 
                 TimelineSlider(
-                    currentTime: $currentTime,
-                    bufferedTime: bufferedTime,
-                    duration: duration
+                    currentTime: currentTimeBinding,
+                    bufferedTime: player.bufferedTime,
+                    duration: duration,
+                    onInteractionStart: {
+                        viewModel.beginSliderInteraction()
+                    },
+                    onInteractionEnd: {
+                        viewModel.endSliderInteraction()
+                    }
                 ) {
                     Circle()
                         .foregroundColor(.white)
@@ -62,7 +109,7 @@ struct AudioWidget: View {
     @ViewBuilder
     var widgetBottomControls: some View {
         HStack(spacing: 24) {
-            RepeatIcon(repeatState: $repeatState, size: 24, frameSize: 36)
+            RepeatIcon(repeatState: repeatStateBinding, size: 24, frameSize: 36)
                 .pressScale()
                 .hapticFeedback()
                 .circularRipple(diameter: 48)
@@ -76,7 +123,7 @@ struct AudioWidget: View {
                 }
                 .allowsHitTesting(isTrackLoaded)
 
-            PlayPauseIcon(isPlaying: $isPlaying, size: 48)
+            PlayPauseIcon(isPlaying: isPlayingBinding, size: 48)
                 .pressScale()
                 .hapticFeedback()
                 .circularRipple(diameter: 72)
@@ -91,7 +138,7 @@ struct AudioWidget: View {
                 }
                 .allowsHitTesting(isTrackLoaded)
 
-            FavoriteHeartIcon(isFavorite: $isFavorite, heartSize: 24, frameSize: 36)
+            FavoriteHeartIcon(isFavorite: isFavoriteBinding, heartSize: 24, frameSize: 36)
                 .hapticFeedback()
                 .allowsHitTesting(isTrackLoaded)
         }

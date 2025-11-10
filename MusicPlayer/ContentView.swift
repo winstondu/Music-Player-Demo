@@ -8,20 +8,12 @@
 import SwiftUI
 
 struct ContentView: View {
+    @StateObject private var mockPlayer = MockTrackPlayer()
+    private let userPreferences = UserPreferences.shared
 
     // Debug toggle
     @State private var hasTrack: Bool = true
-
-    // Persistent favorites dictionary (trackId -> isFavorite)
-    @State private var favorites: [String: Bool] = [:]
-
-    // AudioWidget state
-    @State private var currentTrack: MusicTrack?
-    @State private var isPlaying: Bool = false
-    @State private var isFavorite: Bool = false
-    @State private var repeatState: RepeatState = .repeatOff
-    @State private var currentTime: TimeInterval = 0
-    @State private var bufferedTime: TimeInterval = 60
+    @State private var showDebugSidebar: Bool = true
 
     let sampleTrack = MusicTrack(
         id: "1",
@@ -32,7 +24,7 @@ struct ContentView: View {
             string:
                 "https://lh3.googleusercontent.com/gShVRyvLLbwVB8jeIPghCXgr96wxTHaM4zqfmxIWRsUpMhMn38PwuUU13o1mXQzLMt5HFqX761u8Tgo4L_JG1XLATvw=s0"
         ),
-        trackTimeMillis: 300000
+        trackTimeMillis: 60000
     )
 
     var body: some View {
@@ -40,54 +32,116 @@ struct ContentView: View {
             Color.white
                 .ignoresSafeArea()
 
-            VStack(spacing: 20) {
-                // Debug toggle
+            HStack(spacing: 0) {
+                // Main content area
+                ZStack {
+                    AudioWidget(player: mockPlayer, preferences: userPreferences)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+                // Debug sidebar
+                if showDebugSidebar {
+                    debugSidebar
+                        .transition(.move(edge: .trailing))
+                }
+            }
+
+            // Sidebar toggle button
+            VStack {
+                HStack {
+                    Spacer()
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                            showDebugSidebar.toggle()
+                        }
+                    }) {
+                        Image(systemName: showDebugSidebar ? "sidebar.right" : "sidebar.left")
+                            .font(.system(size: 20))
+                            .foregroundColor(.gray)
+                            .padding(12)
+                            .background(Color.white.opacity(0.9))
+                            .clipShape(Circle())
+                            .shadow(radius: 4)
+                    }
+                    .padding(.trailing, showDebugSidebar ? 260 : 20)
+                    .padding(.top, 20)
+                }
+                Spacer()
+            }
+        }
+        .onAppear {
+            // Initialize with sample track if needed
+            if hasTrack {
+                mockPlayer.setTrack(sampleTrack)
+                mockPlayer.play()
+            }
+        }
+    }
+
+    private var debugSidebar: some View {
+        VStack(spacing: 20) {
+            Text("Debug Controls")
+                .font(.headline)
+                .foregroundColor(.gray)
+                .padding(.top, 20)
+
+            VStack(spacing: 12) {
                 Toggle("Has Track", isOn: $hasTrack)
                     .padding()
                     .background(Color.white.opacity(0.1))
                     .cornerRadius(8)
-                    .padding(.horizontal, 40)
                     .onChange(of: hasTrack) { oldValue, newValue in
                         // Update track when toggle changes
-                        currentTrack = newValue ? sampleTrack : nil
-                        // Reset state when track is removed
-                        if !newValue {
-                            currentTime = 0
-                            bufferedTime = 0
+                        if newValue {
+                            mockPlayer.setTrack(sampleTrack)
+                            mockPlayer.play()
                         } else {
-                            bufferedTime = 60
+                            mockPlayer.setTrack(nil)
                         }
                     }
 
-                AudioWidget(
-                    currentTrack: $currentTrack,
-                    isPlaying: $isPlaying,
-                    isFavorite: $isFavorite,
-                    repeatState: $repeatState,
-                    currentTime: $currentTime,
-                    bufferedTime: $bufferedTime
+                Toggle(
+                    "Buffering",
+                    isOn: Binding(
+                        get: { mockPlayer.isBuffering },
+                        set: { newValue in
+                            if newValue {
+                                mockPlayer.beginBuffering()
+                            } else {
+                                mockPlayer.stopBuffering()
+                            }
+                        }
+                    )
                 )
+                .padding()
+                .background(Color.white.opacity(0.1))
+                .cornerRadius(8)
+                .disabled(!hasTrack)
+
+                Button("Buffer a bit") {
+                    mockPlayer.bufferMore(seconds: 30)
+                }
+                .padding()
+                .background(Color.blue.opacity(0.7))
+                .foregroundColor(.white)
+                .cornerRadius(8)
+                .disabled(!hasTrack)
+
+                Button("Reset buffering") {
+                    mockPlayer.resetBuffering()
+                }
+                .padding()
+                .background(Color.orange.opacity(0.7))
+                .foregroundColor(.white)
+                .cornerRadius(8)
+                .disabled(!hasTrack)
             }
+            .padding(.horizontal, 16)
+
+            Spacer()
         }
-        .onAppear {
-            // Initialize with sample track
-            currentTrack = hasTrack ? sampleTrack : nil
-        }
-        .onChange(of: currentTrack) { oldValue, newValue in
-            if let newTrack = newValue {
-                // Load favorite state from dictionary
-                isFavorite = favorites[newTrack.id] ?? false
-            } else {
-                // No track loaded
-                isFavorite = false
-                isPlaying = false
-            }
-        }
-        .onChange(of: isFavorite) { oldValue, newValue in
-            if let track = currentTrack {
-                favorites[track.id] = newValue
-            }
-        }
+        .frame(width: 240)
+        .background(Color.gray.opacity(0.1))
     }
 }
 

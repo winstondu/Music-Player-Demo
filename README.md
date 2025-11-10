@@ -28,6 +28,8 @@ Specifically, I downloaded the following:
 -- "favorite" -- Fill variation
 -- "favorite" -- Regular variation
 
+## Songs
+-- Obtained via iTunes Search API: https://performance-partners.apple.com/search-api
 
 ## Animations
 I took https://lottiefiles.com/free-animation/like-oWZfadnX6c, and took just the burst effect. 
@@ -104,6 +106,26 @@ The slider provides rich tactile and visual feedback to make dragging feel preci
 - Buffered layer indicates how much content is loaded/ready to play
 - Progress layer shows actual playback position
 - This visual hierarchy provides users with important feedback about both playback progress and buffer status
+
+### Seek Interaction Behavior
+The timeline slider handles different interaction scenarios to provide intuitive and reliable seek behavior:
+
+**Case 1: Track playing before interaction**
+- Touch down → Playback pauses temporarily
+- Dragging → Time display updates as user scrubs through timeline
+- Touch up → Seeks to new position and resumes playback
+- **Rationale**: Pausing during drag prevents audio stuttering and jumping. This matches industry-standard behavior in apps like Spotify and Apple Music, creating a familiar and polished experience.
+
+**Case 2: Track paused before interaction**
+- Touch down → No change (already paused)
+- Dragging → Time display updates as user scrubs
+- Touch up → Seeks to new position, remains paused
+- **Rationale**: Respects the user's pause state. Allows users to scrub through content to find a specific moment without triggering unexpected playback.
+
+**Case 3: Seeking beyond buffered content**
+- If drag ends at a position past the buffered point (gray bar)
+- Seeks to the requested position but **pauses playback** (even if track was playing before)
+- **Rationale**: Prevents confusing UX where playback appears to start but no audio plays due to buffering delay. User maintains explicit control by manually pressing play once content has buffered to the new position.
 
 ## Track Display
 The track display shows the album artwork alongside the song title and artist name.
