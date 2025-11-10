@@ -11,6 +11,8 @@ struct MarqueeText: View {
     let text: String
     let font: Font
     let spacing: CGFloat  // Spacing between repeated text in marquee
+    
+    let scrollDuration = 6.0
 
     @State private var textWidth: CGFloat = 0
     @State private var containerWidth: CGFloat = 0
@@ -109,12 +111,10 @@ struct MarqueeText: View {
     private func animateMarquee(proxy: ScrollViewProxy) {
         guard isMarqueeActive else { return }
 
-        let duration = 2.5
-
-        withAnimation(.linear(duration: duration)) {
+        withAnimation(.linear(duration: scrollDuration)) {
             proxy.scrollTo("text-2", anchor: .leading)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + scrollDuration) {
             // Reset to start position without animation
             proxy.scrollTo("text-1", anchor: .leading)
 
