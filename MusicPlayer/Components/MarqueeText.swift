@@ -10,13 +10,11 @@ import SwiftUI
 struct MarqueeText: View {
     let text: String
     let font: Font
-    let spacing: CGFloat // Spacing between repeated text in marquee
+    let spacing: CGFloat  // Spacing between repeated text in marquee
 
     @State private var textWidth: CGFloat = 0
     @State private var containerWidth: CGFloat = 0
-    @State private var offset: CGFloat = 0
     @State private var isMarqueeActive: Bool = false
-    @State private var animationID: UUID = UUID()
 
     init(text: String, font: Font, spacing: CGFloat = 40) {
         self.text = text
@@ -24,11 +22,8 @@ struct MarqueeText: View {
         self.spacing = spacing
     }
 
-    private var marqueeAnimation: Animation? {
-        guard isMarqueeActive else { return nil }
-        let totalWidth = textWidth + spacing
-        return Animation.linear(duration: Double(totalWidth) / 30.0)
-            .repeatForever(autoreverses: false)
+    var shouldScroll: Bool {
+        textWidth > containerWidth
     }
 
     var body: some View {
@@ -48,28 +43,47 @@ struct MarqueeText: View {
                                 .onChange(of: geometry.size.width) { _, newWidth in
                                     containerWidth = newWidth
                                 }
+                                .onChange(of: textGeometry.size.width) { _, newWidth in
+                                    textWidth = newWidth
+                                }
                         }
                     )
-                    .opacity(0) // Hide the measurement text
+                    .opacity(0)  // Hide the measurement text
 
-                // Display text with conditional marquee
-                HStack(spacing: spacing) {
-                    Text(text)
-                        .font(font)
-                        .fixedSize()
+                // ScrollView for marquee
+                ScrollViewReader { proxy in
+                    ScrollView(.horizontal) {
+                        HStack(spacing: spacing) {
+                            Text(text)
+                                .font(font)
+                                .fixedSize()
+                                .id("text-1")
 
-                    Text(text)
-                        .font(font)
-                        .fixedSize()
-                        .opacity(textWidth > containerWidth ? 1 : 0)
-                }
-                .offset(x: offset)
-                .animation(marqueeAnimation, value: animationID)
-                .onChange(of: textWidth) {
-                    updateMarqueeState()
-                }
-                .onChange(of: containerWidth) {
-                    updateMarqueeState()
+                            if shouldScroll {
+                                Text(text)
+                                    .font(font)
+                                    .fixedSize()
+                                    .id("text-2")
+                            }
+                        }
+                    }
+                    .scrollIndicators(.hidden)
+                    .scrollDisabled(true)
+                    .onChange(of: textWidth) { _, _ in
+                        updateMarqueeState(proxy: proxy)
+                    }
+                    .onChange(of: containerWidth) { _, _ in
+                        updateMarqueeState(proxy: proxy)
+                    }
+                    .onChange(of: text) { _, _ in
+                        // Reset scroll position when text changes
+                        isMarqueeActive = false
+                        proxy.scrollTo("text-1", anchor: .leading)
+                        updateMarqueeState(proxy: proxy)
+                    }
+                    .onAppear {
+                        updateMarqueeState(proxy: proxy)
+                    }
                 }
             }
             .frame(width: geometry.size.width, alignment: .leading)
@@ -77,26 +91,42 @@ struct MarqueeText: View {
         }
     }
 
-    private func updateMarqueeState() {
+    private func updateMarqueeState(proxy: ScrollViewProxy) {
         let shouldScroll = textWidth > containerWidth
 
         if shouldScroll && !isMarqueeActive {
-            startMarquee()
+            startMarquee(proxy: proxy)
         } else if !shouldScroll && isMarqueeActive {
-            stopMarquee()
+            stopMarquee(proxy: proxy)
         }
     }
 
-    private func startMarquee() {
+    private func startMarquee(proxy: ScrollViewProxy) {
         isMarqueeActive = true
-        let totalWidth = textWidth + spacing
-        animationID = UUID() // Trigger new animation
-        offset = -totalWidth
+        animateMarquee(proxy: proxy)
     }
 
-    private func stopMarquee() {
+    private func animateMarquee(proxy: ScrollViewProxy) {
+        guard isMarqueeActive else { return }
+
+        let duration = 2.5
+
+        withAnimation(.linear(duration: duration)) {
+            proxy.scrollTo("text-2", anchor: .leading)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            // Reset to start position without animation
+            proxy.scrollTo("text-1", anchor: .leading)
+
+            // Continue the loop
+            DispatchQueue.main.async {
+                animateMarquee(proxy: proxy)
+            }
+        }
+    }
+
+    private func stopMarquee(proxy: ScrollViewProxy) {
         isMarqueeActive = false
-        animationID = UUID() // Cancel animation
-        offset = 0
+        proxy.scrollTo("text-1", anchor: .leading)
     }
 }
