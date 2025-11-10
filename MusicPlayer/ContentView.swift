@@ -20,6 +20,7 @@ struct ContentView: View {
     @State private var searchQuery: String = ""
     @State private var searchResults: [MusicTrack] = []
     @State private var isSearching: Bool = false
+    @State private var hasLoadedInitialSuggestions: Bool = false
 
     enum SidebarTab {
         case debug
@@ -27,6 +28,7 @@ struct ContentView: View {
     }
 
     let sampleTrack = MusicTrack.defaultMusicTrack
+
 
     var body: some View {
         ZStack {
@@ -223,6 +225,9 @@ struct ContentView: View {
             }
         }
         .padding(.horizontal, 16)
+        .onAppear {
+            loadInitialSuggestions()
+        }
     }
 
     private func trackResultRow(_ track: MusicTrack) -> some View {
@@ -255,6 +260,15 @@ struct ContentView: View {
             .cornerRadius(8)
         }
         .buttonStyle(.plain)
+    }
+
+    private func loadInitialSuggestions() {
+        guard !hasLoadedInitialSuggestions else { return }
+
+        hasLoadedInitialSuggestions = true
+
+        // Use hardcoded tracks from Taylor Swift's 1989 album (fetched via iTunes API)
+        searchResults = taylorSwift1989Tracks
     }
 
     private func performSearch() {
