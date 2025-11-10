@@ -16,16 +16,11 @@ struct AudioWidget<Player: TrackPlayerProtocol>: View {
     init(player: Player, preferences: any UserPreferencesProtocol) {
         self.player = player
         self.preferences = preferences
-        self._viewModel = StateObject(wrappedValue: AudioWidgetViewModel(player: player))
+        self._viewModel = StateObject(wrappedValue: AudioWidgetViewModel(player: player, preferences: preferences))
     }
 
     var isTrackLoaded: Bool {
         player.currentTrack != nil
-    }
-
-    var isFavorite: Bool {
-        guard let trackId = player.currentTrack?.id else { return false }
-        return preferences.isFavorite(trackId: trackId)
     }
 
     var duration: TimeInterval {
@@ -52,16 +47,6 @@ struct AudioWidget<Player: TrackPlayerProtocol>: View {
             get: { self.player.isPlaying },
             set: { _ in
                 self.player.togglePlayPause()
-            }
-        )
-    }
-
-    private var isFavoriteBinding: Binding<Bool> {
-        Binding(
-            get: { self.isFavorite },
-            set: { newValue in
-                guard let trackId = self.player.currentTrack?.id else { return }
-                self.preferences.setFavorite(newValue, for: trackId)
             }
         )
     }
@@ -104,6 +89,9 @@ struct AudioWidget<Player: TrackPlayerProtocol>: View {
         }
         .frame(maxWidth: 480, maxHeight: 300)
         .cornerRadius(16)
+        .onChange(of: player.currentTrack?.id) { _, _ in
+            viewModel.updateFavoriteState()
+        }
     }
 
     @ViewBuilder
@@ -138,9 +126,16 @@ struct AudioWidget<Player: TrackPlayerProtocol>: View {
                 }
                 .allowsHitTesting(isTrackLoaded)
 
-            FavoriteHeartIcon(isFavorite: isFavoriteBinding, heartSize: 24, frameSize: 36)
-                .hapticFeedback()
-                .allowsHitTesting(isTrackLoaded)
+            FavoriteHeartIcon(
+                isFavorite: Binding(
+                    get: { viewModel.isFavorite },
+                    set: { _ in viewModel.toggleFavorite() }
+                ),
+                heartSize: 24,
+                frameSize: 36
+            )
+            .hapticFeedback()
+            .allowsHitTesting(isTrackLoaded)
         }
     }
 }

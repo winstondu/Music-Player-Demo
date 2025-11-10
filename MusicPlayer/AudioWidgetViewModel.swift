@@ -11,10 +11,12 @@ import Foundation
 @MainActor
 class AudioWidgetViewModel<Player: TrackPlayerProtocol>: ObservableObject {
     private weak var player: Player?
+    private let preferences: any UserPreferencesProtocol
 
     @Published private var internalCurrentTime: TimeInterval = 0
     private var wasPlayingBeforeInteraction: Bool = false
     @Published private(set) var isInteractingWithSlider: Bool = false
+    @Published var isFavorite: Bool = false
 
     var currentTime: TimeInterval {
         if isInteractingWithSlider {
@@ -24,18 +26,36 @@ class AudioWidgetViewModel<Player: TrackPlayerProtocol>: ObservableObject {
         }
     }
 
-    init(player: Player) {
+    init(player: Player, preferences: any UserPreferencesProtocol) {
         self.player = player
+        self.preferences = preferences
+        self.updateFavoriteState()
+    }
+
+    func updateFavoriteState() {
+        guard let trackId = player?.currentTrack?.id else {
+            isFavorite = false
+            return
+        }
+        isFavorite = preferences.isFavorite(trackId: trackId)
+    }
+
+    func toggleFavorite() {
+        guard let trackId = player?.currentTrack?.id else { return }
+        let newValue = !isFavorite
+        preferences.setFavorite(newValue, for: trackId)
+        isFavorite = newValue
     }
 
     func beginSliderInteraction() {
         guard let player = player else { return }
-        guard let trackPlayer = player as? TrackPlayer else { return }
 
+        // Always enter interaction mode regardless of concrete player type
         isInteractingWithSlider = true
         wasPlayingBeforeInteraction = player.isPlaying
 
-        trackPlayer.pause()
+        // Pause via protocol so both real and mock players support this
+        player.pause()
     }
     
     func updateSliderTime(_ time: TimeInterval) {
@@ -44,12 +64,11 @@ class AudioWidgetViewModel<Player: TrackPlayerProtocol>: ObservableObject {
 
     func endSliderInteraction() {
         guard let player = player else { return }
-        guard let trackPlayer = player as? TrackPlayer else { return }
 
         isInteractingWithSlider = false
 
-        // Seek to the committed time
-        trackPlayer.seek(to: internalCurrentTime)
+        // Seek to the committed time via protocol
+        player.seek(to: internalCurrentTime)
 
         // Check if seeking past buffered content (Case 3)
         let bufferedTime = player.bufferedTime
@@ -62,7 +81,7 @@ class AudioWidgetViewModel<Player: TrackPlayerProtocol>: ObservableObject {
         } else {
             // Cases 1 & 2: Resume playback if it was playing before
             if wasPlayingBeforeInteraction {
-                trackPlayer.resume()
+                player.resume()
             }
         }
     }

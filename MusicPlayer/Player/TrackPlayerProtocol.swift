@@ -20,6 +20,11 @@ protocol TrackPlayerProtocol: AnyObject, ObservableObject {
 
     /// Toggle between play and pause
     func togglePlayPause()
+
+    // Controls needed for scrubbing/slider interaction
+    func pause()
+    func resume()
+    func seek(to time: TimeInterval)
 }
 
 // Extension providing binding helper for writable properties
