@@ -9,8 +9,8 @@ import Combine
 import Foundation
 
 @MainActor
-class AudioWidgetViewModel<Player: TrackPlayerProtocol>: ObservableObject {
-    private weak var player: Player?
+class AudioWidgetViewModel: ObservableObject {
+    private weak var player: AnyTrackPlayer?
     private let preferences: any UserPreferencesProtocol
 
     @Published private var internalCurrentTime: TimeInterval = 0
@@ -26,7 +26,7 @@ class AudioWidgetViewModel<Player: TrackPlayerProtocol>: ObservableObject {
         }
     }
 
-    init(player: Player, preferences: any UserPreferencesProtocol) {
+    init(player: AnyTrackPlayer, preferences: any UserPreferencesProtocol) {
         self.player = player
         self.preferences = preferences
         self.updateFavoriteState()

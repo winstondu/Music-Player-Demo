@@ -7,13 +7,13 @@
 
 import SwiftUI
 
-struct AudioWidget<Player: TrackPlayerProtocol>: View {
-    @ObservedObject var player: Player
+struct AudioWidget: View {
+    @ObservedObject var player: AnyTrackPlayer
     var preferences: any UserPreferencesProtocol
 
-    @StateObject private var viewModel: AudioWidgetViewModel<Player>
+    @StateObject private var viewModel: AudioWidgetViewModel
 
-    init(player: Player, preferences: any UserPreferencesProtocol) {
+    init(player: AnyTrackPlayer, preferences: any UserPreferencesProtocol) {
         self.player = player
         self.preferences = preferences
         self._viewModel = StateObject(wrappedValue: AudioWidgetViewModel(player: player, preferences: preferences))
