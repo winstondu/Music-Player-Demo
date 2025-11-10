@@ -15,17 +15,7 @@ struct ContentView: View {
     @State private var hasTrack: Bool = true
     @State private var showDebugSidebar: Bool = true
 
-    let sampleTrack = MusicTrack(
-        id: "1",
-        name: "Black Friday",
-        artist: "Lost Frequencies, Tom Odell, Poppy Baskcomb",
-        previewURL: nil,
-        artworkUrl100: URL(
-            string:
-                "https://lh3.googleusercontent.com/gShVRyvLLbwVB8jeIPghCXgr96wxTHaM4zqfmxIWRsUpMhMn38PwuUU13o1mXQzLMt5HFqX761u8Tgo4L_JG1XLATvw=s0"
-        ),
-        trackTimeMillis: 60000
-    )
+    let sampleTrack = MusicTrack.defaultMusicTrack
 
     var body: some View {
         ZStack {

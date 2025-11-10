@@ -19,4 +19,13 @@ struct MusicTrack: Identifiable, Codable, Equatable {
         guard let millis = trackTimeMillis else { return nil }
         return TimeInterval(millis) / 1000.0
     }
+    
+    
+    static let defaultMusicTrack = MusicTrack(
+        id: "1",
+        name: "Black Friday (pretty like the sun)",
+        artist: "Lost Frequencies, Tom Odell, Poppy Baskcomb",
+        previewURL: nil,
+        artworkUrl100: nil, trackTimeMillis: 300000,  // URL(string: "https://lh3.googleusercontent.com/gShVRyvLLbwVB8jeIPghCXgr96wxTHaM4zqfmxIWRsUpMhMn38PwuUU13o1mXQzLMt5HFqX761u8Tgo4L_JG1XLATvw=s0")
+    )
 }
